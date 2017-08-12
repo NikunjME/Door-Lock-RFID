@@ -1,0 +1,97 @@
+Hardware Required:
+1) Any Arduino 
+2) Servo Motor(SG90)
+3) RFID-RC522
+4) Slide Barrel Bolt Lock 
+
+Wiring: 
+/*
+SDA------------------------Digital A4
+SCK------------------------Digital 13
+MOSI----------------------Digital 11
+MISO----------------------Digital 12
+IRQ------------------------unconnected
+GND-----------------------GND
+RST------------------------Digital 9
+3.3V------------------------3.3V (DO NOT CONNECT TO 5V) 
+Servo Digital 8
+*/
+
+For Referance:
+
+RFID Setup and Card UID number: https://create.arduino.cc/projecthub/Aritro/security-access-using-rfid-reader-f7c746?ref=search&ref_id=rfid&offset=18
+
+RFID and Servo motor: https://create.arduino.cc/projecthub/adachsoft_com/arduino-rfid-lock-with-rc522-mifare-protocol-13-56-mhz-085ef2?ref=search&ref_id=rfid&offset=10
+
+Arduino MFRC522 Library from miguelbalboa at: :https://github.com/miguelbalboa/rfid
+
+
+Code:
+
+#include <SPI.h>
+#include <MFRC522.h>
+#include <Servo.h>
+
+
+#define SERVO_PIN 8
+Servo myservo;  // create servo object to control a servo
+ 
+#define SS_PIN A4
+#define RST_PIN 9
+MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
+
+
+void setup() {
+  Serial.begin(9600);
+  SPI.begin();
+  mfrc522.PCD_Init();
+  Serial.println("For more: http://geek.adachsoft.com");
+  Serial.println("Arduino RFID lock");
+  Serial.println("");
+
+  myservo.attach(SERVO_PIN);
+  myservo.write( 90 );        // servo motor position at starting 
+
+  delay(500);
+
+}
+
+void loop(){
+  //Look for new cards
+  if ( !mfrc522.PICC_IsNewCardPresent() ){
+    return;
+  }
+  //Select one of the cards
+  if ( !mfrc522.PICC_ReadCardSerial() ) {
+    return;
+  }
+  
+  String content= "";
+  byte letter;
+  for( byte i = 0; i < mfrc522.uid.size; i++ ){
+     content.concat(String(mfrc522.uid.uidByte[i], HEX));
+     if( i < mfrc522.uid.size-1 ) content+="-";
+  }
+  content.toUpperCase();
+  Serial.println();
+  Serial.println("UID tag :'" + content + "'");
+  
+ // Enter your UID tag number bellow 
+  if( content == "C6-1B-7F-A5" ){     
+    Serial.println("Authorized access");
+    myservo.write( 0 );     // servo motor position after Authorized access 
+
+    delay(5000);     // time to wait before it's lock the door
+    myservo.write( 90 );     // servo motor back at starting starting 
+
+  }
+  else{
+    Serial.println("Access denied");
+    delay(500);
+  }
+  
+  delay(1000);
+} 
+
+
+What's next: I'm currently working on Raspberry pi, to unlcok the door from anywhere throw WiFi. 
